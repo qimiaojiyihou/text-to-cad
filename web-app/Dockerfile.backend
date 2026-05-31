@@ -1,0 +1,33 @@
+# ---------------------------------------------------------------------------
+# Text-to-CAD Backend — Pure API (no static files)
+# Build context must be the repo root (text-to-cad/)
+#   docker build -f web-app/Dockerfile.backend .
+# ---------------------------------------------------------------------------
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system deps for build123d / OCP
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1-mesa-glx \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY web-app/backend/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy repo skills/packages needed by the backend
+COPY skills/ ./skills/
+COPY packages/ ./packages/
+COPY models/ ./models/
+COPY web-app/backend/ ./web-app/backend/
+
+# Install cadpy (editable install from the bundled package)
+RUN pip install --no-cache-dir -e ./skills/cad/scripts/packages/cadpy
+
+WORKDIR /app/web-app/backend
+
+EXPOSE 8000
+
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: web-app/Dockerfile.backend
+    container_name: ttc-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.lkeap.cloud.tencent.com/coding/v3}
+      - LLM_MODEL=${LLM_MODEL:-kimi-k2.5}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - MOUNT_STATIC=false
+    volumes:
+      - ./web-app/generated_models:/app/web-app/generated_models
+      - ./web-app/app.db:/app/web-app/app.db
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: web-app/Dockerfile.frontend
+      args:
+        VITE_API_BASE: ${VITE_API_BASE}
+    container_name: ttc-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  admin:
+    build:
+      context: .
+      dockerfile: web-app/Dockerfile.admin
+      args:
+        VITE_API_BASE: ${VITE_API_BASE}
+    container_name: ttc-admin
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
